@@ -16,7 +16,9 @@
       --evening: #f59e0b;
       --night: #8b5cf6;
       --off: #22c55e;
-      --today: #ef4444;
+      --today: #3b82f6;
+      --selected: #ef4444;
+      --selected-bg: #fff1f2;
     }
     * { box-sizing: border-box; }
     body {
@@ -132,6 +134,8 @@
     }
     .day.blank { background: transparent; border-color: transparent; box-shadow: none; }
     .day.today { border: 2px solid var(--today); padding: 5px; }
+    .day.selected { border: 2px solid var(--selected); background: var(--selected-bg); padding: 5px; }
+    .day.today.selected { box-shadow: inset 0 0 0 2px rgba(59,130,246,.25); }
     .date-num { font-size: 13px; font-weight: 800; }
     .day .pill { min-width: 0; width: 100%; font-size: 13px; padding: 6px 0; }
     .memo-dot {
@@ -141,6 +145,10 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 100%;
+      width: 100%;
+      display: block;
+      text-align: left;
     }
     .sun { color: #ef4444; }
     .sat { color: #2563eb; }
@@ -193,6 +201,7 @@
 
     <section class="card">
       <div class="today-title">選択日の4班確認</div>
+      <div class="today-date" id="selectedDateLabel" style="font-size:18px;margin-top:2px;"></div>
       <div class="sub">基準日: A班が休みの日。A休みの日は B=3日目 / C=2日目 / D=1日目。</div>
       <div id="allTeams" class="all-teams"></div>
     </section>
@@ -268,7 +277,7 @@
     const $ = (id) => document.getElementById(id);
     const state = {
       view: new Date(),
-      selectedDate: null,
+      selectedDate: ymd(new Date()),
       memos: JSON.parse(localStorage.getItem('shiftMemos') || '{}')
     };
 
@@ -278,6 +287,7 @@
       const d = String(date.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
     }
+    function formatJaDate(date) { return `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} (${['日','月','火','水','木','金','土'][date.getDay()]})`; }
     function dateOnly(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
     function daysBetween(a, b) { return Math.round((dateOnly(a) - dateOnly(b)) / 86400000); }
     function mod(n, m) { return ((n % m) + m) % m; }
@@ -307,11 +317,14 @@
         if (getShift(d).key === 'off') { next = i; break; }
       }
       $('nextOff').textContent = shift.key === 'off' ? '今日は休み。' : `次の休みまで ${next} 日`;
-      renderAllTeams(today);
+      const selected = state.selectedDate ? new Date(state.selectedDate + 'T00:00:00') : today;
+      renderAllTeams(selected);
     }
     function renderAllTeams(date) {
       const box = $('allTeams');
       if (!box) return;
+      const label = $('selectedDateLabel');
+      if (label) label.textContent = `選択日：${formatJaDate(date)}`;
       box.innerHTML = '';
       ['A','B','C','D'].forEach(team => {
         const wrap = document.createElement('div');
@@ -344,7 +357,7 @@
         const key = ymd(d);
         const shift = getShift(d);
         const cell = document.createElement('button');
-        cell.className = 'day' + (key === todayKey ? ' today' : '');
+        cell.className = 'day' + (key === todayKey ? ' today' : '') + (key === state.selectedDate ? ' selected' : '');
         cell.type = 'button';
         const num = document.createElement('div');
         num.className = 'date-num' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '');
@@ -353,7 +366,8 @@
         cell.appendChild(pill(shift, 'short'));
         const memo = document.createElement('div');
         memo.className = 'memo-dot';
-        memo.textContent = state.memos[key] ? `📝 ${state.memos[key]}` : '';
+        memo.textContent = state.memos[key] ? `📝 ${state.memos[key].replace(/\s+/g, ' ')}` : '';
+        memo.title = state.memos[key] || '';
         cell.appendChild(memo);
         cell.addEventListener('click', () => openMemo(d));
         cal.appendChild(cell);
@@ -362,7 +376,7 @@
     function openMemo(date) {
       state.selectedDate = ymd(date);
       const shift = getShift(date);
-      $('modalDate').textContent = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} (${['日','月','火','水','木','金','土'][date.getDay()]})`;
+      $('modalDate').textContent = formatJaDate(date);
       $('modalShift').innerHTML = '';
       $('modalShift').appendChild(pill(shift));
       $('memoInput').value = state.memos[state.selectedDate] || '';
@@ -374,7 +388,7 @@
     }
     $('prevBtn').addEventListener('click', () => { state.view.setMonth(state.view.getMonth() - 1); renderCalendar(); });
     $('nextBtn').addEventListener('click', () => { state.view.setMonth(state.view.getMonth() + 1); renderCalendar(); });
-    $('todayBtn').addEventListener('click', () => { state.view = new Date(); renderCalendar(); });
+    $('todayBtn').addEventListener('click', () => { state.view = new Date(); state.selectedDate = ymd(new Date()); renderCalendar(); });
     $('resetBtn').addEventListener('click', () => {
       localStorage.removeItem('shiftTeam');
       localStorage.removeItem('shiftBaseDate');
