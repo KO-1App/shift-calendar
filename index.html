@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三交代カレンダー v6</title>
+  <title>三交代カレンダー v7</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -171,7 +171,7 @@
     .modal h2 { margin: 0 0 6px; font-size: 20px; }
     textarea { width: 100%; min-height: 120px; resize: vertical; margin: 10px 0; }
     .row { display: flex; gap: 8px; justify-content: flex-end; }
-    .selected-card { padding: 12px 14px; }
+    .selected-card { padding: 12px 14px; cursor: pointer; }
     .selected-head {
       display: flex;
       align-items: baseline;
@@ -223,7 +223,7 @@
     <header>
       <div>
         <h1>三交代カレンダー</h1>
-        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v6 選択日コンパクト版</b></div>
+        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v7 選択日タップ入力版</b></div>
       </div>
       <button id="resetBtn" title="保存設定を初期化">初期化</button>
       <button id="todayBtn">今日</button>
@@ -263,7 +263,7 @@
           </select>
         </div>
         <div>
-          <label>基準日（A班夕勤休みの日）</label>
+          <label>基準日（A班が夕勤明け休みの日）</label>
           <input id="baseDate" type="date" value="2026-06-01" />
         </div>
       </div>
@@ -408,19 +408,34 @@
         memo.textContent = state.memos[key] ? `📝 ${state.memos[key].replace(/\s+/g, ' ')}` : '';
         memo.title = state.memos[key] || '';
         cell.appendChild(memo);
-        cell.addEventListener('click', () => openMemo(d));
+        cell.addEventListener('click', () => handleDayTap(d));
         cal.appendChild(cell);
       }
     }
+    function handleDayTap(date) {
+      const key = ymd(date);
+
+      // まだ選択していない日なら、まず選択だけする。
+      // 同じ日をもう一度タップしたときだけ予定入力を開く。
+      if (state.selectedDate !== key) {
+        state.selectedDate = key;
+        renderAllTeams(date);
+        renderCalendar();
+        return;
+      }
+
+      openMemo(date);
+    }
+
     function openMemo(date) {
       state.selectedDate = ymd(date);
-      renderCalendar(); // 保存せず閉じても、選択日として反映する
+      renderAllTeams(date);
+      renderCalendar();
       const shift = getShift(date);
       $('modalDate').textContent = formatJaDate(date);
       $('modalShift').innerHTML = '';
       $('modalShift').appendChild(pill(shift));
       $('memoInput').value = state.memos[state.selectedDate] || '';
-      renderAllTeams(date);
       $('memoDialog').showModal();
     }
     function saveMemos() {
@@ -452,6 +467,10 @@
       saveMemos();
       $('memoDialog').close();
       renderCalendar();
+    });
+    document.querySelector('.selected-card').addEventListener('click', () => {
+      const date = state.selectedDate ? new Date(state.selectedDate + 'T00:00:00') : new Date();
+      openMemo(date);
     });
     $('teamSelect').value = localStorage.getItem('shiftTeam') || 'A';
     $('baseDate').value = localStorage.getItem('shiftBaseDate') || '2026-06-01';
