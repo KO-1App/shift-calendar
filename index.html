@@ -111,7 +111,7 @@
     .settings input, .settings select { width: 100%; }
     .weekdays, .calendar {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(7, minmax(0, calc((100% - 36px) / 7)));
       gap: 6px;
     }
     .weekdays div {
@@ -131,24 +131,31 @@
       flex-direction: column;
       gap: 5px;
       position: relative;
+      min-width: 0;
+      max-width: 100%;
+      width: 100%;
+      overflow: hidden;
+      padding-bottom: 20px;
     }
     .day.blank { background: transparent; border-color: transparent; box-shadow: none; }
     .day.today { border: 2px solid var(--today); padding: 5px; }
     .day.selected { border: 2px solid var(--selected); background: var(--selected-bg); padding: 5px; }
     .day.today.selected { box-shadow: inset 0 0 0 2px rgba(59,130,246,.25); }
     .date-num { font-size: 13px; font-weight: 800; }
-    .day .pill { min-width: 0; width: 100%; font-size: 13px; padding: 6px 0; }
+    .day .pill { min-width: 0; width: 100%; max-width: 100%; font-size: 13px; padding: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .memo-dot {
-      margin-top: auto;
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 5px;
       font-size: 11px;
       color: var(--muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 100%;
-      width: 100%;
       display: block;
       text-align: left;
+      pointer-events: none;
     }
     .sun { color: #ef4444; }
     .sat { color: #2563eb; }
@@ -173,7 +180,7 @@
     .mini { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
     @media (max-width: 390px) {
       .app { padding: 10px; }
-      .day { min-height: 64px; padding: 5px; }
+      .day { min-height: 64px; padding: 5px 5px 20px; }
       .day .pill { font-size: 12px; }
       .settings { grid-template-columns: 1fr; }
     }
@@ -184,7 +191,7 @@
     <header>
       <div>
         <h1>三交代カレンダー</h1>
-        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v2 修正版</b></div>
+        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v5 固定幅修正版</b></div>
       </div>
       <button id="resetBtn" title="保存設定を初期化">初期化</button>
       <button id="todayBtn">今日</button>
@@ -375,6 +382,7 @@
     }
     function openMemo(date) {
       state.selectedDate = ymd(date);
+      renderCalendar(); // 保存せず閉じても、選択日として反映する
       const shift = getShift(date);
       $('modalDate').textContent = formatJaDate(date);
       $('modalShift').innerHTML = '';
