@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三交代カレンダー v7</title>
+  <title>三交代カレンダー v8</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -141,6 +141,23 @@
     .day.today { border: 2px solid var(--today); padding: 5px; }
     .day.selected { border: 2px solid var(--selected); background: var(--selected-bg); padding: 5px; }
     .day.today.selected { box-shadow: inset 0 0 0 2px rgba(59,130,246,.25); }
+    .day.has-memo::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #f97316;
+      box-shadow: 0 0 0 2px #fff;
+    }
+    .day.has-memo .date-num {
+      text-decoration: underline;
+      text-decoration-color: #f97316;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 3px;
+    }
     .date-num { font-size: 13px; font-weight: 800; }
     .day .pill { min-width: 0; width: 100%; max-width: 100%; font-size: 13px; padding: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .memo-dot {
@@ -187,6 +204,25 @@
       gap: 6px;
       margin-top: 0;
     }
+    .selected-memo {
+      margin-top: 8px;
+      padding: 7px 9px;
+      border-radius: 12px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .selected-memo.empty {
+      background: #f9fafb;
+      border-color: var(--line);
+      color: var(--muted);
+      font-weight: 600;
+    }
     .team-chip {
       min-width: 0;
       display: flex;
@@ -223,7 +259,7 @@
     <header>
       <div>
         <h1>三交代カレンダー</h1>
-        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v7 選択日タップ入力版</b></div>
+        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v8 予定表示強化版</b></div>
       </div>
       <button id="resetBtn" title="保存設定を初期化">初期化</button>
       <button id="todayBtn">今日</button>
@@ -244,6 +280,7 @@
         <div class="selected-date" id="selectedDateLabel"></div>
       </div>
       <div id="allTeams" class="all-teams" aria-label="選択日の4班勤務"></div>
+      <div id="selectedMemo" class="selected-memo empty">予定なし</div>
     </section>
 
     <section class="card">
@@ -365,6 +402,13 @@
       if (!box) return;
       const label = $('selectedDateLabel');
       if (label) label.textContent = `選択日：${formatJaDate(date)}`;
+      const memoBox = $('selectedMemo');
+      if (memoBox) {
+        const memoText = state.memos[ymd(date)] ? state.memos[ymd(date)].replace(/\s+/g, ' ') : '';
+        memoBox.textContent = memoText ? `📝 ${memoText}` : '予定なし';
+        memoBox.className = memoText ? 'selected-memo' : 'selected-memo empty';
+        memoBox.title = memoText;
+      }
       box.innerHTML = '';
       ['A','B','C','D'].forEach(team => {
         const wrap = document.createElement('div');
@@ -396,7 +440,7 @@
         const key = ymd(d);
         const shift = getShift(d);
         const cell = document.createElement('button');
-        cell.className = 'day' + (key === todayKey ? ' today' : '') + (key === state.selectedDate ? ' selected' : '');
+        cell.className = 'day' + (key === todayKey ? ' today' : '') + (key === state.selectedDate ? ' selected' : '') + (state.memos[key] ? ' has-memo' : '');
         cell.type = 'button';
         const num = document.createElement('div');
         num.className = 'date-num' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '');
