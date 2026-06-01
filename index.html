@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三交代カレンダー 修正版</title>
+  <title>三交代カレンダー v6</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -171,10 +171,39 @@
     .modal h2 { margin: 0 0 6px; font-size: 20px; }
     textarea { width: 100%; min-height: 120px; resize: vertical; margin: 10px 0; }
     .row { display: flex; gap: 8px; justify-content: flex-end; }
-    .all-teams { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
-    .team-box { border: 1px solid var(--line); border-radius: 14px; padding: 8px; text-align: center; background: #fff; }
-    .team-name { font-weight: 900; font-size: 13px; margin-bottom: 6px; }
-    .team-box .pill { width: 100%; min-width: 0; font-size: 12px; padding: 7px 4px; }
+    .selected-card { padding: 12px 14px; }
+    .selected-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .selected-title { font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .selected-date { font-size: 18px; font-weight: 900; color: var(--text); text-align: right; }
+    .all-teams {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 0;
+    }
+    .team-chip {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 4px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .team-chip b { color: var(--text); }
+    .team-chip .pill { min-width: 38px; width: auto; font-size: 12px; padding: 5px 8px; }
     .legend { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
     .legend span { display: inline-flex; align-items: center; gap: 4px; }
     .mini { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
@@ -183,6 +212,9 @@
       .day { min-height: 64px; padding: 5px 5px 20px; }
       .day .pill { font-size: 12px; }
       .settings { grid-template-columns: 1fr; }
+      .selected-date { font-size: 16px; }
+      .team-chip { gap: 3px; padding: 4px 3px; }
+      .team-chip .pill { min-width: 34px; padding: 5px 6px; }
     }
   </style>
 </head>
@@ -191,7 +223,7 @@
     <header>
       <div>
         <h1>三交代カレンダー</h1>
-        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v5 固定幅修正版</b></div>
+        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v6 選択日コンパクト版</b></div>
       </div>
       <button id="resetBtn" title="保存設定を初期化">初期化</button>
       <button id="todayBtn">今日</button>
@@ -206,11 +238,12 @@
       <div id="todayShift"></div>
     </section>
 
-    <section class="card">
-      <div class="today-title">選択日の4班確認</div>
-      <div class="today-date" id="selectedDateLabel" style="font-size:18px;margin-top:2px;"></div>
-      <div class="sub">基準日: A班が休みの日。A休みの日は B=3日目 / C=2日目 / D=1日目。</div>
-      <div id="allTeams" class="all-teams"></div>
+    <section class="card selected-card">
+      <div class="selected-head">
+        <div class="selected-title">選択日</div>
+        <div class="selected-date" id="selectedDateLabel"></div>
+      </div>
+      <div id="allTeams" class="all-teams" aria-label="選択日の4班勤務"></div>
     </section>
 
     <section class="card">
@@ -335,10 +368,9 @@
       box.innerHTML = '';
       ['A','B','C','D'].forEach(team => {
         const wrap = document.createElement('div');
-        wrap.className = 'team-box';
-        const name = document.createElement('div');
-        name.className = 'team-name';
-        name.textContent = `${team}班`;
+        wrap.className = 'team-chip';
+        const name = document.createElement('b');
+        name.textContent = team;
         wrap.appendChild(name);
         wrap.appendChild(pill(getShiftForTeam(date, team), 'short'));
         box.appendChild(wrap);
