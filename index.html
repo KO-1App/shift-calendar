@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>三交代カレンダー v8</title>
+  <title>三交代カレンダー v10</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -19,6 +19,7 @@
       --today: #3b82f6;
       --selected: #ef4444;
       --selected-bg: #fff1f2;
+      --holiday: #ef4444;
     }
     * { box-sizing: border-box; }
     body {
@@ -69,6 +70,47 @@
       padding: 14px;
       box-shadow: 0 10px 24px rgba(15, 23, 42, .06);
       margin-bottom: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    #menuBtn {
+      min-width: 44px;
+      font-size: 20px;
+      line-height: 1;
+      padding: 9px 12px;
+    }
+    .calendar-card .controls {
+      margin-bottom: 10px;
+    }
+    .sheet-dialog {
+      width: min(94vw, 520px);
+      margin: auto auto 0;
+      border-radius: 22px 22px 0 0;
+    }
+    .sheet {
+      padding: 16px;
+    }
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .sheet-head h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .menu-settings {
+      margin-top: 0;
+    }
+    .menu-settings button {
+      width: 100%;
     }
     .today-card {
       display: grid;
@@ -135,7 +177,7 @@
       max-width: 100%;
       width: 100%;
       overflow: hidden;
-      padding-bottom: 20px;
+      padding-bottom: 34px;
     }
     .day.blank { background: transparent; border-color: transparent; box-shadow: none; }
     .day.today { border: 2px solid var(--today); padding: 5px; }
@@ -157,6 +199,48 @@
       text-decoration-color: #f97316;
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
+    }
+
+    .day.has-holiday .date-num {
+      color: var(--holiday);
+    }
+    .holiday-label {
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 20px;
+      font-size: 10px;
+      color: var(--holiday);
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .holiday-status {
+      grid-column: 1 / -1;
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+    .holiday-button {
+      width: 100%;
+    }
+    .selected-holiday {
+      margin-top: 8px;
+      padding: 7px 9px;
+      border-radius: 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .selected-holiday.empty {
+      display: none;
     }
     .date-num { font-size: 13px; font-weight: 800; }
     .day .pill { min-width: 0; width: 100%; max-width: 100%; font-size: 13px; padding: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -245,7 +329,7 @@
     .mini { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
     @media (max-width: 390px) {
       .app { padding: 10px; }
-      .day { min-height: 64px; padding: 5px 5px 20px; }
+      .day { min-height: 68px; padding: 5px 5px 34px; }
       .day .pill { font-size: 12px; }
       .settings { grid-template-columns: 1fr; }
       .selected-date { font-size: 16px; }
@@ -259,10 +343,12 @@
     <header>
       <div>
         <h1>三交代カレンダー</h1>
-        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v8 予定表示強化版</b></div>
+        <div class="sub">朝勤・夜勤・夕勤・休みを自動表示 <b>v10 メニュー整理版</b></div>
       </div>
-      <button id="resetBtn" title="保存設定を初期化">初期化</button>
-      <button id="todayBtn">今日</button>
+      <div class="header-actions">
+        <button id="todayBtn">今日</button>
+        <button id="menuBtn" title="設定メニュー">☰</button>
+      </div>
     </header>
 
     <section class="card today-card">
@@ -280,16 +366,36 @@
         <div class="selected-date" id="selectedDateLabel"></div>
       </div>
       <div id="allTeams" class="all-teams" aria-label="選択日の4班勤務"></div>
+      <div id="selectedHoliday" class="selected-holiday empty"></div>
       <div id="selectedMemo" class="selected-memo empty">予定なし</div>
     </section>
 
-    <section class="card">
+    <section class="card calendar-card">
       <div class="controls">
         <button id="prevBtn">‹</button>
         <div class="month-label" id="monthLabel"></div>
         <button id="nextBtn">›</button>
       </div>
-      <div class="settings">
+      <div class="legend">
+        <span><i class="mini morning"></i>朝勤</span>
+        <span><i class="mini night"></i>夜勤</span>
+        <span><i class="mini evening"></i>夕勤</span>
+        <span><i class="mini off"></i>休み</span>
+      </div>
+      <div class="weekdays">
+        <div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div>
+      </div>
+      <div class="calendar" id="calendar"></div>
+    </section>
+  </main>
+
+  <dialog id="menuDialog" class="sheet-dialog">
+    <div class="modal sheet">
+      <div class="sheet-head">
+        <h2>メニュー</h2>
+        <button id="closeMenuBtn" type="button">閉じる</button>
+      </div>
+      <div class="settings menu-settings">
         <div>
           <label>班</label>
           <select id="teamSelect">
@@ -303,22 +409,18 @@
           <label>基準日（A班夕勤明け休み）</label>
           <input id="baseDate" type="date" value="2026-06-01" />
         </div>
+        <div>
+          <label>祝日データ</label>
+          <button id="fetchHolidaysBtn" class="holiday-button" type="button">祝日データ取得</button>
+        </div>
+        <div>
+          <label>保存設定</label>
+          <button id="resetBtn" type="button" title="保存設定を初期化">初期化</button>
+        </div>
+        <div class="holiday-status" id="holidayStatus"></div>
       </div>
-    </section>
-
-    <section class="card">
-      <div class="legend">
-        <span><i class="mini morning"></i>朝勤</span>
-        <span><i class="mini night"></i>夜勤</span>
-        <span><i class="mini evening"></i>夕勤</span>
-        <span><i class="mini off"></i>休み</span>
-      </div>
-      <div class="weekdays">
-        <div class="sun">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div>
-      </div>
-      <div class="calendar" id="calendar"></div>
-    </section>
-  </main>
+    </div>
+  </dialog>
 
   <dialog id="memoDialog">
     <div class="modal">
@@ -355,7 +457,8 @@
     const state = {
       view: new Date(),
       selectedDate: ymd(new Date()),
-      memos: JSON.parse(localStorage.getItem('shiftMemos') || '{}')
+      memos: JSON.parse(localStorage.getItem('shiftMemos') || '{}'),
+      holidays: JSON.parse(localStorage.getItem('shiftHolidays') || '{}')
     };
 
     function ymd(date) {
@@ -375,6 +478,38 @@
     }
     function getShift(date) {
       return getShiftForTeam(date, $('teamSelect').value);
+    }
+    function getHolidayName(date) {
+      return state.holidays[ymd(date)] || '';
+    }
+    function updateHolidayStatus(message) {
+      const el = $('holidayStatus');
+      if (!el) return;
+      if (message) { el.textContent = message; return; }
+      const fetchedAt = localStorage.getItem('shiftHolidaysFetchedAt');
+      const count = Object.keys(state.holidays || {}).length;
+      el.textContent = count ? `保存済み: ${count}件（${fetchedAt || '取得日不明'}）` : '未取得：オンラインで祝日データを取得できます';
+    }
+    async function fetchHolidays() {
+      const btn = $('fetchHolidaysBtn');
+      if (btn) { btn.disabled = true; btn.textContent = '取得中...'; }
+      updateHolidayStatus('祝日データを取得中...');
+      try {
+        const res = await fetch('https://holidays-jp.github.io/api/v1/date.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        state.holidays = data || {};
+        const today = ymd(new Date());
+        localStorage.setItem('shiftHolidays', JSON.stringify(state.holidays));
+        localStorage.setItem('shiftHolidaysFetchedAt', today);
+        updateHolidayStatus(`取得成功: ${Object.keys(state.holidays).length}件（${today}）`);
+        renderCalendar();
+      } catch (err) {
+        updateHolidayStatus('取得失敗：通信状態を確認してください');
+        alert('祝日データを取得できませんでした。通信状態を確認して、もう一度試してください。');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '祝日データ取得'; }
+      }
     }
     function pill(shift, textMode = 'label') {
       const span = document.createElement('span');
@@ -403,6 +538,13 @@
       const label = $('selectedDateLabel');
       if (label) label.textContent = `選択日：${formatJaDate(date)}`;
       const memoBox = $('selectedMemo');
+      const holidayBox = $('selectedHoliday');
+      if (holidayBox) {
+        const holidayName = getHolidayName(date);
+        holidayBox.textContent = holidayName ? `祝日：${holidayName}` : '';
+        holidayBox.className = holidayName ? 'selected-holiday' : 'selected-holiday empty';
+        holidayBox.title = holidayName;
+      }
       if (memoBox) {
         const memoText = state.memos[ymd(date)] ? state.memos[ymd(date)].replace(/\s+/g, ' ') : '';
         memoBox.textContent = memoText ? `📝 ${memoText}` : '予定なし';
@@ -440,13 +582,21 @@
         const key = ymd(d);
         const shift = getShift(d);
         const cell = document.createElement('button');
-        cell.className = 'day' + (key === todayKey ? ' today' : '') + (key === state.selectedDate ? ' selected' : '') + (state.memos[key] ? ' has-memo' : '');
+        const holidayName = getHolidayName(d);
+        cell.className = 'day' + (key === todayKey ? ' today' : '') + (key === state.selectedDate ? ' selected' : '') + (state.memos[key] ? ' has-memo' : '') + (holidayName ? ' has-holiday' : '');
         cell.type = 'button';
         const num = document.createElement('div');
         num.className = 'date-num' + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '');
         num.textContent = day;
         cell.appendChild(num);
         cell.appendChild(pill(shift, 'short'));
+        if (holidayName) {
+          const holiday = document.createElement('div');
+          holiday.className = 'holiday-label';
+          holiday.textContent = holidayName;
+          holiday.title = holidayName;
+          cell.appendChild(holiday);
+        }
         const memo = document.createElement('div');
         memo.className = 'memo-dot';
         memo.textContent = state.memos[key] ? `📝 ${state.memos[key].replace(/\s+/g, ' ')}` : '';
@@ -485,6 +635,8 @@
     function saveMemos() {
       localStorage.setItem('shiftMemos', JSON.stringify(state.memos));
     }
+    $('menuBtn').addEventListener('click', () => $('menuDialog').showModal());
+    $('closeMenuBtn').addEventListener('click', () => $('menuDialog').close());
     $('prevBtn').addEventListener('click', () => { state.view.setMonth(state.view.getMonth() - 1); renderCalendar(); });
     $('nextBtn').addEventListener('click', () => { state.view.setMonth(state.view.getMonth() + 1); renderCalendar(); });
     $('todayBtn').addEventListener('click', () => { state.view = new Date(); state.selectedDate = ymd(new Date()); renderCalendar(); });
@@ -493,6 +645,7 @@
       localStorage.removeItem('shiftBaseDate');
       $('teamSelect').value = 'A';
       $('baseDate').value = '2026-06-01';
+      updateHolidayStatus();
       renderCalendar();
     });
     $('teamSelect').addEventListener('change', () => { localStorage.setItem('shiftTeam', $('teamSelect').value); renderCalendar(); });
@@ -516,6 +669,8 @@
       const date = state.selectedDate ? new Date(state.selectedDate + 'T00:00:00') : new Date();
       openMemo(date);
     });
+    $('fetchHolidaysBtn').addEventListener('click', fetchHolidays);
+    updateHolidayStatus();
     $('teamSelect').value = localStorage.getItem('shiftTeam') || 'A';
     $('baseDate').value = localStorage.getItem('shiftBaseDate') || '2026-06-01';
     renderCalendar();
